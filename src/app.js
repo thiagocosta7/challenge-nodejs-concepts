@@ -1,33 +1,123 @@
-const express = require("express");
-const cors = require("cors");
+const express = require('express')
+const { uuid, isUuid } = require('uuidv4')
+const cors = require('cors')
 
-// const { uuid } = require("uuidv4");
+const app = express()
 
-const app = express();
+app.use(express.json())
+app.use(cors())
 
-app.use(express.json());
-app.use(cors());
+const repositories = []
 
-const repositories = [];
+// Function to log all requests
+const logRequests = (request, response, next) => {
+  const { method, url } = request
+  const logLabel = `[${method.toUpperCase()}] ${url}`
 
-app.get("/repositories", (request, response) => {
-  // TODO
-});
+  console.time(logLabel)
+  next()
+  console.timeEnd(logLabel)
+}
 
-app.post("/repositories", (request, response) => {
-  // TODO
-});
+// Function to verify if ID is a valid ID
+const checkRepositoryId = (request, response, next) => {
+  const { id } = request.params
 
-app.put("/repositories/:id", (request, response) => {
-  // TODO
-});
+  if(!isUuid(id)) {
+      return response.status(400).json({ error: "Invalid repository ID!" })
+  }
 
-app.delete("/repositories/:id", (request, response) => {
-  // TODO
-});
+  return next()
+}
 
-app.post("/repositories/:id/like", (request, response) => {
-  // TODO
-});
+// MIDDLEWARES
+app.use(logRequests)
+app.use('/repositories/:id', checkRepositoryId)
 
-module.exports = app;
+// LIST
+app.get('/repositories', (request, response) => {
+  return response.json(repositories)
+})
+
+// CREATE
+app.post('/repositories', (request, response) => {
+  const LIKES = 0
+  const {
+    title,
+    user, // 'user' parameter added to fill entire GitHub URL
+    url,
+    techs
+  } = request.body
+  const GITHUB_URL = `http://github.com/${user}`
+  const repository = { id: uuid(), title, url: `${GITHUB_URL}${url}`, techs, likes: LIKES }
+
+  repositories.push(repository)
+
+  return response.json(repository)
+})
+
+// UPDATE
+app.put('/repositories/:id', (request, response) => {
+  const { id } = request.params
+  const {
+    title,
+    user, // 'user' parameter added to fill entire GitHub URL
+    url,
+    techs
+  } = request.body
+
+  const repositoryIndex = repositories.findIndex(repository => repository.id === id)
+
+  if(repositoryIndex < 0) {
+    return response.status(400).json({ error: 'Repository not found!' })
+  }
+
+  const repository = {
+    id,
+    title,
+    user, // 'user' parameter added to fill entire GitHub URL
+    url,
+    techs,
+    likes: repositories[repositoryIndex].likes
+  }
+
+  repositories[repositoryIndex] = repository
+
+  return response.json(repository)
+})
+
+// DELETE
+app.delete('/repositories/:id', (request, response) => {
+  const { id } = request.params
+  const repositoryIndex = repositories.findIndex(repository => repository.id === id)
+  if(repositoryIndex < 0) {
+    return response.status(400).json({ error: 'Repository not found!' })
+  }
+
+  repositories.splice(repositoryIndex, 1)
+
+  return response.status(204).send()
+})
+
+// ADD LIKE
+app.post('/repositories/:id/like', (request, response) => {
+  const { id } = request.params
+
+  const repositoryIndex = repositories.findIndex(repository => repository.id === id)
+
+  if(repositoryIndex < 0) {
+    return response.status(400).json({ error: 'Repository not found!' })
+  }
+
+  const repository = {
+    ...repositories[repositoryIndex],
+    likes: repositories[repositoryIndex].likes + 1
+  }
+
+  repositories[repositoryIndex] = repository
+
+  return response.json(repository)
+
+})
+
+module.exports = app
