@@ -44,12 +44,10 @@ app.post('/repositories', (request, response) => {
   const LIKES = 0
   const {
     title,
-    user, // 'user' parameter added to fill entire GitHub URL
     url,
     techs
   } = request.body
-  const GITHUB_URL = `http://github.com/${user}`
-  const repository = { id: uuid(), title, url: `${GITHUB_URL}${url}`, techs, likes: LIKES }
+  const repository = { id: uuid(), title, url, techs, likes: LIKES }
 
   repositories.push(repository)
 
@@ -61,7 +59,6 @@ app.put('/repositories/:id', (request, response) => {
   const { id } = request.params
   const {
     title,
-    user, // 'user' parameter added to fill entire GitHub URL
     url,
     techs
   } = request.body
@@ -75,7 +72,6 @@ app.put('/repositories/:id', (request, response) => {
   const repository = {
     id,
     title,
-    user, // 'user' parameter added to fill entire GitHub URL
     url,
     techs,
     likes: repositories[repositoryIndex].likes
